@@ -103,6 +103,8 @@ function setLanguage(lang) {
     if (!tooltipText) return;
     tooltipText.innerText = sections.skills.tooltips[skill] ?? "";
   });
+  // Re-bind clamping in case tooltips were (re)rendered/changed
+  bindTooltipClamping();
 
   setText("exp-title", sections.experience.title);
 
@@ -124,9 +126,93 @@ function setLanguage(lang) {
   setText("degrees-title", sections.degrees.title);
   // Optional element; guard keeps existing UI unchanged.
   setText("degrees-content", sections.degrees.content);
+
+  // Footer mode may change when content length changes with language
+  updateFooterMode();
 }
 
-// Needed because the HTML uses inline onclick handlers.
+// HTML uses inline onclick handlers.
 window.setLanguage = setLanguage;
 
-window.addEventListener("load", () => setLanguage("nl"));
+function updateFooterMode() {
+  const footer = document.querySelector(".site-footer");
+  if (!footer) return;
+  const docH = document.documentElement.scrollHeight;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  const footerH = footer.offsetHeight || 0;
+  const fits = docH <= vh || docH - footerH <= vh;
+  footer.classList.toggle("fixed", fits);
+}
+
+function clampTooltip(el, opts = { resetBeforeMeasure: false }) {
+  const tt = el.querySelector(".tooltiptext");
+  if (!tt) return;
+  if (opts.resetBeforeMeasure) {
+    tt.style.setProperty("--tt-shift", "0px");
+  }
+  const rect = tt.getBoundingClientRect();
+  const vw = window.innerWidth || document.documentElement.clientWidth;
+  const inset = 8;
+  let shift = 0;
+  if (rect.left < inset) {
+    shift = inset - rect.left;
+  } else if (rect.right > vw - inset) {
+    shift = -(rect.right - (vw - inset));
+  }
+  if (shift !== 0) {
+    tt.style.setProperty("--tt-shift", `${shift}px`);
+  }
+}
+
+function bindTooltipClamping() {
+  document.querySelectorAll(".tooltip").forEach((el) => {
+    el.removeEventListener("mouseenter", el.__clampHandler);
+    const handler = () => clampTooltip(el);
+    el.__clampHandler = handler;
+    el.addEventListener("mouseenter", handler);
+
+    el.removeEventListener("mouseleave", el.__clampResetHandler);
+    const resetHandler = () => {
+      const tt = el.querySelector(".tooltiptext");
+      if (tt) tt.style.setProperty("--tt-shift", "0px");
+    };
+    el.__clampResetHandler = resetHandler;
+    el.addEventListener("mouseleave", resetHandler);
+  });
+}
+
+function clampHoveredTooltips() {
+  document
+    .querySelectorAll(".tooltip:hover")
+    .forEach((el) => clampTooltip(el, { resetBeforeMeasure: true }));
+}
+
+function setupBrandIcon() {
+  const icon = document.querySelector(".brand-icon");
+  if (!icon) return;
+  icon.addEventListener("click", () => {
+    if (!icon.classList.contains("rolling")) icon.classList.add("rolling");
+  });
+  icon.addEventListener("animationend", () => {
+    icon.classList.remove("rolling");
+  });
+}
+
+let footerRaf = 0;
+function scheduleFooterModeUpdate() {
+  if (footerRaf) cancelAnimationFrame(footerRaf);
+  footerRaf = requestAnimationFrame(updateFooterMode);
+}
+
+function init() {
+  setLanguage("nl");
+  bindTooltipClamping();
+  setupBrandIcon();
+  scheduleFooterModeUpdate();
+  window.addEventListener("resize", () => {
+    scheduleFooterModeUpdate();
+    clampHoveredTooltips();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", init);

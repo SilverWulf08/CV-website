@@ -10,11 +10,8 @@
     text-align: center;
   }
 }
-/* Attribution link bottom right */
 .attribution {
-  position: fixed;
-  right: 12px;
-  bottom: 8px;
+  position: static;
   font-size: 0.7rem;
   color: #fff;
   background: none;
@@ -23,8 +20,9 @@
   padding: 3px 8px;
   border-radius: 6px;
   text-decoration: none;
-  z-index: 1000;
   transition: background 0.2s, transform var(--transition), box-shadow var(--transition);
+  display: inline-block;
+  margin: 0 12px 4px 0; /* reduce bottom gap; keep slight inset */
 }
 .attribution:hover {
   background: none;
@@ -55,12 +53,45 @@ body {
   color: var(--text-color);
   font-family: var(--font-family);
   line-height: 1.6;
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1,
 h2,
 h3 {
   margin-bottom: 10px;
+}
+
+/* Brand icon next to title */
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  margin-right: 6px;
+  vertical-align: middle;
+  display: inline-block;
+  transform: translateZ(0);
+  transition: transform 0.2s ease, filter 0.25s ease;
+  will-change: transform;
+}
+
+@keyframes brand-roll {
+  from { transform: rotate(0deg) scale(1.15); }
+  to   { transform: rotate(360deg) scale(1.15); }
+}
+
+/* Spin only when clicked (JS toggles this class briefly) */
+.brand-icon.rolling {
+  animation: brand-roll 1s cubic-bezier(0.42, 0, 0.58, 1) 1;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+}
+
+/* Hover pop-out without spinning */
+.brand-icon:hover {
+  transform: scale(1.12);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
 }
 
 /* Layout */
@@ -75,12 +106,7 @@ h3 {
 .container {
   width: 60%;
   margin: 20px auto;
-}
-
-@media (max-width: 768px) {
-  .container {
-    width: 90%;
-  }
+  flex: 1 0 auto; /* allows footer to stick to bottom on short content */
 }
 
 /* Card sections */
@@ -131,7 +157,8 @@ h3 {
   position: absolute;
   bottom: 125%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--tt-shift, 0px)));
+  will-change: transform;
   background: #333 !important;
   color: #fff !important;
   padding: 5px;
@@ -243,4 +270,45 @@ h3 {
   width: 40px;
   height: 40px;
   display: block;
+}
+
+
+/* Footer that holds the attribution at the bottom-right without overlap */
+.site-footer {
+  width: 100%;
+  text-align: right;
+}
+
+/* Footer becomes fixed only when content doesn't require scrolling */
+.site-footer.fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+
+@media (max-width: 768px) {
+  .container {
+    width: 90%;
+  }
+
+  .lang-buttons {
+    position: static;
+    bottom: auto;
+    left: auto;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0 8px 0;
+  }
+
+  .site-footer {
+    text-align: center;
+  }
+
+  .attribution {
+    margin: 8px auto 4px auto;
+  }
 }
